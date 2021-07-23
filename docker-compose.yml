@@ -1,0 +1,50 @@
+version: '3.2'
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.13.0
+    container_name: elasticsearch
+    ports:
+      - 9200:9200
+    environment:
+      ES_JAVA_OPTS: -Xmx4g -Xms4g   # es内存限制
+      discovery.type: single-node
+      xpack.ml.enabled: "false"
+    restart: always
+    logging:
+        driver: "json-file"
+        options:
+          max-size: "1g"
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.13.0
+    container_name: logstash
+    command: bin/logstash -f /usr/share/logstash/pipeline/logstash.conf
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline
+    environment:
+      LS_JAVA_OPTS: -Xmx2g -Xms2g   # logstash内存限制
+      ELASTICSEARCH_ROUTES: elasticsearch:9200
+    depends_on:
+      - elasticsearch
+    restart: always
+    logging:
+        driver: "json-file"
+        options:
+          max-size: "1g"
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.13.0
+    container_name: kibana
+    ports:
+      - 5601:5601
+    environment:
+      ELASTICSEARCH_HOSTS: '["http://elasticsearch:9200"]'
+    depends_on:
+      - elasticsearch
+    restart: always
+    logging:
+        driver: "json-file"
+        options:
+          max-size: "1g"
+
